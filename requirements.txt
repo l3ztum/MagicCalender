@@ -1,0 +1,8 @@
+pillow==10.1.0
+google-api-python-client
+google-auth-httplib2
+google-auth-oauthlib
+numpy
+requests
+pytz
+pytest
