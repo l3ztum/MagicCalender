@@ -1,0 +1,110 @@
+[
+    {
+        "kind": "calendar#event",
+        "etag": "\"3400512783294000\"",
+        "id": "6cpj6c9m60ojcb9gcgo64b9kclimab9o6sq6abb560smce9h6tij0e1gcc",
+        "status": "confirmed",
+        "htmlLink": "https://www.google.com/calendar/event?eid=NmNwajZjOW02MG9qY2I5Z2NnbzY0YjlrY2xpbWFiOW82c3E2YWJiNTYwc21jZTloNnRpajBlMWdjYyBtdXR6M2xAbQ",
+        "created": "2023-11-17T21:26:31.000Z",
+        "updated": "2023-11-17T21:26:31.647Z",
+        "summary": "8. Woche",
+        "creator": {
+            "email": "mutz3l@gmail.com",
+            "self": true
+        },
+        "organizer": {
+            "email": "mutz3l@gmail.com",
+            "self": true
+        },
+        "start": {
+            "date": "2023-12-11"
+        },
+        "end": {
+            "date": "2023-12-12"
+        },
+        "transparency": "transparent",
+        "iCalUID": "6cpj6c9m60ojcb9gcgo64b9kclimab9o6sq6abb560smce9h6tij0e1gcc@google.com",
+        "sequence": 0,
+        "reminders": {
+            "useDefault": false,
+            "overrides": [
+                {
+                    "method": "popup",
+                    "minutes": 10
+                },
+                {
+                    "method": "email",
+                    "minutes": 430
+                }
+            ]
+        },
+        "eventType": "default"
+    },
+    {
+        "kind": "calendar#event",
+        "etag": "\"3367770518522000\"",
+        "id": "cdi68c9g60qmabb468s32b9kcdi32b9o6ks3eb9g6gs30cj26dgjip1n68_20240101",
+        "status": "confirmed",
+        "htmlLink": "https://www.google.com/calendar/event?eid=Y2RpNjhjOWc2MHFtYWJiNDY4czMyYjlrY2RpMzJiOW82a3MzZWI5ZzZnczMwY2oyNmRnamlwMW42OF8yMDI0MDEwMSBtdXR6M2xAbQ",
+        "created": "2023-05-12T09:54:19.000Z",
+        "updated": "2023-05-12T09:54:19.261Z",
+        "summary": "Z\u00e4hlerstand ablesen",
+        "creator": {
+            "email": "mutz3l@gmail.com",
+            "self": true
+        },
+        "organizer": {
+            "email": "mutz3l@gmail.com",
+            "self": true
+        },
+        "start": {
+            "date": "2024-01-01"
+        },
+        "end": {
+            "date": "2024-01-02"
+        },
+        "recurringEventId": "cdi68c9g60qmabb468s32b9kcdi32b9o6ks3eb9g6gs30cj26dgjip1n68",
+        "originalStartTime": {
+            "date": "2024-01-01"
+        },
+        "transparency": "transparent",
+        "iCalUID": "cdi68c9g60qmabb468s32b9kcdi32b9o6ks3eb9g6gs30cj26dgjip1n68@google.com",
+        "sequence": 0,
+        "reminders": {
+            "useDefault": false
+        },
+        "eventType": "default"
+    },
+    {
+        "kind": "calendar#event",
+        "etag": "\"3404049049256000\"",
+        "id": "74s30eb3cgrj4b9o65h6cb9kcoq64bb1c4o3eb9hc4s36chl61gm4d9o6o",
+        "status": "confirmed",
+        "htmlLink": "https://www.google.com/calendar/event?eid=NzRzMzBlYjNjZ3JqNGI5bzY1aDZjYjlrY29xNjRiYjFjNG8zZWI5aGM0czM2Y2hsNjFnbTRkOW82byBtdXR6M2xAbQ",
+        "created": "2023-12-08T08:35:24.000Z",
+        "updated": "2023-12-08T08:35:24.628Z",
+        "summary": "Zahnarzt",
+        "creator": {
+            "email": "mutz3l@gmail.com",
+            "self": true
+        },
+        "organizer": {
+            "email": "mutz3l@gmail.com",
+            "self": true
+        },
+        "start": {
+            "dateTime": "2024-01-04T09:15:00+01:00",
+            "timeZone": "Europe/Berlin"
+        },
+        "end": {
+            "dateTime": "2024-01-04T10:15:00+01:00",
+            "timeZone": "Europe/Berlin"
+        },
+        "iCalUID": "74s30eb3cgrj4b9o65h6cb9kcoq64bb1c4o3eb9hc4s36chl61gm4d9o6o@google.com",
+        "sequence": 0,
+        "reminders": {
+            "useDefault": true
+        },
+        "eventType": "default"
+    }
+]

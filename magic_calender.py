@@ -45,7 +45,7 @@ class Point:
         self.y = y
 
     def __gt__(self, other):
-        return self.x > other.x and self.y > other.y
+        return self.x > other.x or self.y > other.y
 
     def __eq__(self, other):
         return self.x == other.x and self.y == other.y
@@ -72,9 +72,13 @@ class Box:
         self.p_end = p_end
         self._p2 = Point(self.p_end.x, self.p_start.y)
         self._p3 = Point(self.p_start.x, self.p_end.y)
-        pass
 
-    def is_in_box(self, p: Point):
+    @classmethod
+    def fromtuple(cls, points: Tuple[int]):
+        assert len(points) == 4
+        return cls(Point(points[0], points[1]), Point(points[2], points[3]))
+
+    def is_in_box(self, p: Point) -> bool:
         return p > self.p_start and p < self.p_end
 
     def __str__(self) -> str:
@@ -86,7 +90,7 @@ class Box:
     def draw(self, CalConfig: CalConfig, img: ImageDraw.ImageDraw):
         to_draw = (
             self.p_start.as_tuple() + self._p2.as_tuple(),
-            self.p_start.as_tuple() + self._p2.as_tuple(),
+            self._p2.as_tuple() + self.p_end.as_tuple(),
             self._p3.as_tuple() + self.p_end.as_tuple(),
             self.p_start.as_tuple() + self._p3.as_tuple(),
         )
@@ -198,18 +202,29 @@ class appointment:
 
 
 class magic_day:
-    appointments: List[appointment]  # holds each appointment that "crosses" the day
-    pass
+    def __init__(
+        self, day: int, appointments: List[appointment], config: CalConfig
+    ) -> None:
+        self._appointments = [
+            a
+            for a in appointments
+            if a.start < datetime(config.year, config.month, day) < a.end
+        ]
+        self._day = day
+
+    def draw(self, grid: Grid, config: CalConfig, img: ImageDraw.ImageDraw):
+        coords = grid.get_coords_to_draw(self._day)
+        font = config.font
+        font.size = 22
+        img.text(coords + (0, 5), f"{self._day}", font=font)
 
 
 class magic_month:
     days = List[magic_day]
 
-    def __init__(self, month: int, appointments: List[appointment]):
-        pass
-
-    def _draw_grid(self):
-        pass
+    def __init__(self, grid: Grid, appointments: List[appointment]):
+        for i in grid.cal:
+            pass
 
     def draw(self):
         pass

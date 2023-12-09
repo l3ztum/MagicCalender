@@ -1,6 +1,8 @@
 import pytest
 from .. import magic_calender as mc
-from PIL import ImageFont
+from PIL import Image, ImageFont, ImageDraw
+from datetime import datetime
+import json
 
 
 @pytest.fixture
@@ -16,3 +18,24 @@ def example_config() -> mc.CalConfig:
         width=1000,
         font=ImageFont.truetype("/usr/share/fonts/truetype/freefont/FreeMono.ttf", 11),
     )
+
+
+@pytest.fixture
+def example_img(example_config) -> ImageDraw:
+    with Image.new(
+        "RGBA",
+        (example_config.width, example_config.height),
+        color=(255, 255, 255, 255),
+    ) as img:
+        yield ImageDraw.Draw(img)
+        img.save("test.png")
+
+
+@pytest.fixture
+def example_grid(example_config) -> mc.Grid:
+    return mc.Grid(example_config)
+
+
+@pytest.fixture
+def example_gcal():
+    return json.loads()
