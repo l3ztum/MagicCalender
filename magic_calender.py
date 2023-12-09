@@ -29,7 +29,9 @@ class CalConfig:
     header_spacing_px: int = 150
     height: int = 1920
     width: int = 1080
-    font: ImageFont.FreeTypeFont = ImageFont.truetype("arial.ttf", 11)
+    font: ImageFont.FreeTypeFont = ImageFont.truetype(
+        "/usr/share/fonts/truetype/freefont/FreeMono.ttf", 11
+    )
 
 
 class ORIENTATION(Enum):
@@ -82,26 +84,18 @@ class Box:
         return self.p_start.as_tuple() + self.p_end.as_tuple()
 
     def draw(self, CalConfig: CalConfig, img: ImageDraw.ImageDraw):
-        img.line(
+        to_draw = (
             self.p_start.as_tuple() + self._p2.as_tuple(),
-            fill=CalConfig.line_ink,
-            width=CalConfig.line_width,
-        )
-        img.line(
-            self._p2.as_tuple() + self.p_end.as_tuple(),
-            fill=CalConfig.line_ink,
-            width=CalConfig.line_width,
-        )
-        img.line(
+            self.p_start.as_tuple() + self._p2.as_tuple(),
             self._p3.as_tuple() + self.p_end.as_tuple(),
-            fill=CalConfig.line_ink,
-            width=CalConfig.line_width,
-        )
-        img.line(
             self.p_start.as_tuple() + self._p3.as_tuple(),
-            fill=CalConfig.line_ink,
-            width=CalConfig.line_width,
         )
+        for points in to_draw:
+            img.line(
+                points,
+                fill=CalConfig.line_ink,
+                width=CalConfig.line_width,
+            )
 
 
 class Grid:
@@ -184,22 +178,23 @@ class appointment:
 
     def draw(
         self,
-        appointment_number: int,
         img: ImageDraw.ImageDraw,
         grid: Grid,
         config: CalConfig,
-    ):
+        offset_y: int = 0,
+    ) -> int:
         coords = grid.get_coords_to_draw(self.start.day)
         length_available_for_txt = (
             coords.p_end.x - coords.p_start.x - 2 * config.line_spacing_px
         )
+        new_text = self._get_summary(length_available_for_txt, config)
         img.text(
-            (coords.p_start + config.line_spacing_px).as_tuple(),
+            (coords.p_start + (config.line_spacing_px + offset_y)).as_tuple(),
             self._get_summary(length_available_for_txt, config),
             config.line_ink,
             font=config.font,
         )
-        pass
+        return config.font.getsize(new_text)[1]
 
 
 class magic_day:
