@@ -2,7 +2,7 @@ from dataclasses import dataclass
 from datetime import datetime, date
 from pathlib import Path
 
-import os.path, json
+import os.path, json, pytz
 
 from google.auth.transport.requests import Request
 from google.oauth2.credentials import Credentials
@@ -21,16 +21,20 @@ from enum import Enum
 
 @dataclass
 class CalConfig:
-    month: int = 1
-    year: int = 1970
+    month: int = date.today().month
+    year: int = date.today().year
     line_ink: Any = (0, 0, 0, 0)
     line_spacing_px: int = 10
+    day_spacing_px: int = 4
     line_width: int = 2
     header_spacing_px: int = 150
     height: int = 1920
     width: int = 1080
     font: ImageFont.FreeTypeFont = ImageFont.truetype(
-        "/usr/share/fonts/truetype/freefont/FreeMono.ttf", 11
+        "arial.ttf"
+        if "nt" in os.name.lower()
+        else "/usr/share/fonts/truetype/freefont/FreeMono.ttf",
+        11,
     )
 
 
@@ -53,13 +57,21 @@ class Point:
     def __str__(self) -> str:
         return f"Point({self.x},{self.y})"
 
-    def __add__(self, other: int):
+    def __add__(self, other):
         if isinstance(other, int):
             return Point(self.x + other, self.y + other)
+        if isinstance(other, Point):
+            return Point(self.x + other.x, self.y + other.y)
         elif isinstance(other, tuple):
             return Point(self.x + other[0], self.y + other[1])
         else:
-            return Point(self.x + other.x, self.y + other.y)
+            return self
+
+    def __sub__(self, other):
+        if isinstance(other, int):
+            return self + other * (-1)
+        if isinstance(other, Point):
+            return self + Point(*(np.array(other.as_tuple()) * -1))
 
     def as_tuple(self) -> Tuple[int, int]:
         return (self.x, self.y)
@@ -68,15 +80,59 @@ class Point:
 class Box:
     def __init__(self, p_start: Point, p_end: Point) -> None:
         assert p_start < p_end
-        self.p_start = p_start
-        self.p_end = p_end
+        self.p_start: Point = p_start
+        self.p_end: Point = p_end
+        self._p2: Point
+        self._p3: Point
+        self._fill_other()
+
+    def _fill_other(self):
         self._p2 = Point(self.p_end.x, self.p_start.y)
         self._p3 = Point(self.p_start.x, self.p_end.y)
 
+    def __add__(self, to_add):
+        "Adds given pixel outwards in each direction"
+        self.p_start -= to_add
+        self.p_end += to_add
+        self._fill_other()
+        return self
+
+    def __eq__(self, other: object) -> bool:
+        if isinstance(other, Box):
+            return self.p_start == other.p_start and self.p_end == other.p_end
+        return False
+
     @classmethod
-    def fromtuple(cls, points: Tuple[int]):
+    def fromtuple(cls, points: Tuple[int, int, int, int]):
         assert len(points) == 4
         return cls(Point(points[0], points[1]), Point(points[2], points[3]))
+
+    def midpoint(self) -> Point:
+        p = self.p_end - self.p_start
+        return self.p_end - Point(*(np.array(p.as_tuple()) / 2))
+
+    def encapsulating_square(self):
+        p = self.p_end - self.p_start
+        side_length_2 = int(max(p.as_tuple()) / 2)
+        midpoint = self.midpoint()
+        return Box(midpoint - side_length_2, midpoint + side_length_2)
+
+    def anker_to(self, point: Point):
+        self.p_start += point
+        self.p_end += point
+        self._fill_other()
+
+    # def __add__(self, other):
+    #     if isinstance(other, Box):
+    #         return Box(self.p_start + other.p_start, self.p_end + other.p_end)
+    #     if isinstance(other, tuple):
+    #         return Box(self.p_start + other[:2], self.p_end + other[2:])
+    #     raise TypeError
+
+    def __sub__(self, other):
+        if isinstance(other, Box):
+            return Box(self.p_start - other.p_start, self.p_end - other.p_end)
+        raise TypeError
 
     def is_in_box(self, p: Point) -> bool:
         return p > self.p_start and p < self.p_end
@@ -86,6 +142,14 @@ class Box:
 
     def as_tuple(self) -> Tuple[int, int, int, int]:
         return self.p_start.as_tuple() + self.p_end.as_tuple()
+
+    def get_rel_box(self, absolute):
+        if isinstance((absolute), Box):
+            return self - absolute
+
+    def get_abs_box(self, relative):
+        if isinstance((relative), Box):
+            return self + relative
 
     def draw(self, CalConfig: CalConfig, img: ImageDraw.ImageDraw):
         to_draw = (
@@ -111,6 +175,10 @@ class Grid:
         )
         self._config = CalConfig
         self._cal = np.array(monthcalendar(self._config.year, self._config.month))
+
+    def is_weekend(self, day: int):
+        row, col = [i[0] for i in np.where(self._cal == day)]
+        return col >= 5
 
     def get_coords_to_draw(self, day: int) -> Box:
         row, col = [i[0] for i in np.where(self._cal == day)]
@@ -140,12 +208,16 @@ class Grid:
 
 
 class appointment:
-    start: date
-    end: Optional[date] = None
+    start: datetime
+    end: datetime
     summary: str = "<error>"
 
     def __init__(self, gcal_event) -> None:
         self._gcal_event = gcal_event
+        self.load()
+
+    def __str__(self) -> str:
+        return f"{self.start.isoformat()} - { self.end.isoformat() }: {self.summary}"
 
     def load(self):
         try:
@@ -153,14 +225,14 @@ class appointment:
                 self._gcal_event["start"]
                 .get("dateTime", self._gcal_event["start"].get("date"))
                 .rstrip("Z")
-            )
+            ).replace(tzinfo=pytz.UTC)
             self.end = datetime.fromisoformat(
                 str(
                     self._gcal_event["end"].get(
                         "dateTime", self._gcal_event["end"].get("date")
                     )
                 ).rstrip("Z")
-            )
+            ).replace(tzinfo=pytz.UTC)
             self.summary = self._gcal_event["summary"]
         except KeyError as exc:
             raise RuntimeError(
@@ -193,12 +265,13 @@ class appointment:
         )
         new_text = self._get_summary(length_available_for_txt, config)
         img.text(
-            (coords.p_start + (config.line_spacing_px + offset_y)).as_tuple(),
+            (coords.p_start + (config.line_spacing_px, offset_y)).as_tuple(),
             self._get_summary(length_available_for_txt, config),
             config.line_ink,
             font=config.font,
         )
-        return config.font.getsize(new_text)[1]
+        _, y1, _, y2 = config.font.getbbox(new_text)
+        return y2 - y1
 
 
 class magic_day:
@@ -208,46 +281,77 @@ class magic_day:
         self._appointments = [
             a
             for a in appointments
-            if a.start < datetime(config.year, config.month, day) < a.end
+            if a.start
+            <= datetime(config.year, config.month, day, tzinfo=pytz.UTC)
+            < a.end
         ]
         self._day = day
 
+    def _get_day_color(self, config: CalConfig, grid: Grid):
+        if date.today().day == self._day:
+            return (255, 255, 255, 255)
+        else:
+            return (
+                config.line_ink if not grid.is_weekend(self._day) else (255, 0, 0, 255)
+            )
+
+    def _draw_circle(
+        self, img: ImageDraw.ImageDraw, point_text: Point, bounding_box: Box
+    ):
+        if date.today().day == self._day:
+            box = bounding_box.encapsulating_square()
+            box.anker_to(point_text)
+            img.ellipse(box.as_tuple(), fill=(255, 0, 0, 255))
+
     def draw(self, grid: Grid, config: CalConfig, img: ImageDraw.ImageDraw):
         coords = grid.get_coords_to_draw(self._day)
-        font = config.font
-        font.size = 22
-        img.text(coords + (0, 5), f"{self._day}", font=font)
+        font = config.font.font_variant(size=56)
+        bounding_box = Box.fromtuple(font.getbbox(str(self._day)))
+        _offset_x = (
+            coords.p_end.x
+            - coords.p_start.x
+            - (bounding_box.p_end.x - bounding_box.p_start.x)
+        ) / 2
+        _offset_y = bounding_box.p_end.y
+        coords_to_draw = coords.p_start + (_offset_x, 0)
+        self._draw_circle(img, coords_to_draw, bounding_box + 5)
+        img.text(
+            coords_to_draw.as_tuple(),
+            f"{self._day}",
+            font=font,
+            fill=self._get_day_color(config, grid),
+        )
+        for app in self._appointments:
+            _offset_y += config.line_spacing_px
+            _offset_y += app.draw(img, grid, config, _offset_y)
 
 
 class magic_month:
-    days = List[magic_day]
+    def __init__(self, config: CalConfig, grid: Grid, appointments: List[appointment]):
+        self._month = config.month
+        self.days = []
+        for week in grid._cal:
+            for day in week:
+                if day != 0:
+                    self.days.append(magic_day(day, appointments, config))
 
-    def __init__(self, grid: Grid, appointments: List[appointment]):
-        for i in grid.cal:
-            pass
-
-    def draw(self):
-        pass
-
-
-def last_day_of_month(any_day):
-    # The day 28 exists in every month. 4 days later, it's always next month
-    next_month = any_day.replace(day=28) + datetime.timedelta(days=4)
-    # subtracting the number of the current day brings us back one month
-    return next_month - datetime.timedelta(days=next_month.day)
+    def draw(self, img: ImageDraw.ImageDraw, grid: Grid):
+        for day in self.days:
+            day.draw()
 
 
 class magic_calender(Calendar):
     month: Optional[magic_month] = None
 
-    def __init__(self, firstweekday: int = 0, landscape: bool = False) -> None:
+    def __init__(self, config: CalConfig = CalConfig(), firstweekday: int = 0) -> None:
         self._img = Image.new(
             "RGBA",
-            (GEN_WIDTH, GEN_HEIGHT) if landscape else (GEN_HEIGHT, GEN_WIDTH),
+            (config.width, config.height),
             color=(255, 255, 255, 255),
         )
         self._id = ImageDraw.Draw(self._img)
-        self._creds = self.get_gcal_creds()
+        self._config = config
+        self._grid = Grid(config)
         super().__init__(firstweekday)
 
     def get_gcal_creds(self):
@@ -262,32 +366,45 @@ class magic_calender(Calendar):
             if creds and creds.expired and creds.refresh_token:
                 creds.refresh(Request())
             else:
-                flow = InstalledAppFlow.from_client_secrets_file(
-                    "credentials.json", SCOPES
-                )
-                creds = flow.run_local_server(port=0)
-                # Save the credentials for the next run
-                with open("token.json", "w") as token:
-                    token.write(creds.to_json())
+                try:
+                    flow = InstalledAppFlow.from_client_secrets_file(
+                        Path.cwd() / "credentials.json", SCOPES
+                    )
+                    creds = flow.run_local_server(port=0)
+                    # Save the credentials for the next run
+                    with open("token.json", "w") as token:
+                        token.write(creds.to_json())
+                except FileNotFoundError:
+                    print(
+                        "Couldn't find credentials.json in working dir! Consider creating it here: TODO link"
+                    )
         return creds
 
-    def get_events(self):
-        if not self._creds:
+    def get_events_api(self) -> List[Any]:
+        _creds = self.get_gcal_creds()
+        if not _creds:
             raise RuntimeError("Credentials not loaded yet")
         try:
-            service = build("calendar", "v3", credentials=self._creds)
+            service = build("calendar", "v3", credentials=_creds)
 
             # Call the Calendar API
-            dt_now = datetime.now()
-            now = datetime.utcnow().isoformat() + "Z"  # 'Z' indicates UTC time
-            endofmonth = monthrange(dt_now.year, dt_now.month)[1]
+            now = (
+                date(self._config.year, self._config.month, 1).isoformat() + "Z"
+            )  # 'Z' indicates UTC time
+            last_day_of_month = monthrange(self._config.year, self._config.month)[1]
+            ldam = (
+                date(
+                    self._config.year, self._config.month, last_day_of_month
+                ).isoformat()
+                + "Z"
+            )  # 'Z' indicates UTC time
             print("Getting the upcoming 10 events")
             events_result = (
                 service.events()
                 .list(
                     calendarId="primary",
                     timeMin=now,
-                    timeMax=now,
+                    timeMax=ldam,
                     maxResults=1,
                     singleEvents=True,
                     orderBy="startTime",
@@ -295,27 +412,22 @@ class magic_calender(Calendar):
                 .execute()
             )
             events = events_result.get("items", [])
+            print(json.dumps(events))
+            return events
 
         except HttpError as error:
             print(f"An error occurred: {error}")
+            return []
 
-    def load_events_from(self, json: str):
-        events = None
+    def load(self, events: Optional[List] = None):
+        _events = self.get_events_api() if not events else events
         self.month = magic_month(
-            datetime.now().month, [appointment(event) for event in events]
+            self._config, self._grid, [appointment(event) for event in _events]
         )
-        pass
-
-    def load(self, month_of_the_year: int = 0):
-        self.get_events()
-        pass
 
     def draw(self):
-        self._id.line((0, 0) + self._img.size, fill=(255, 0, 0))
-        self._id.line((0, self._img.size[1], self._img.size[0], 0), fill=128)
-        print(vars(self))
         if self.month:
-            self.month.draw()
+            self.month.draw(self._id, self._grid)
         else:
             raise RuntimeError("month not loaded yet")
 
@@ -331,11 +443,13 @@ def main():
     """Shows basic usage of the Google Calendar API.
     Prints the start and name of the next 10 events on the user's calendar.
     """
-
-    cal = magic_calender(firstweekday=0)
-    cal.load()
-    cal.draw()
-    cal.save()
+    try:
+        cal = magic_calender(firstweekday=0)
+        cal.load()
+        cal.draw()
+        cal.save()
+    except RuntimeError as exc:
+        print(f"An error occurred: {exc}")
 
 
 if __name__ == "__main__":

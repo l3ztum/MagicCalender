@@ -22,3 +22,10 @@ def test_in_box():
 def test_box_draw(example_config, example_img):
     box = mc.Box.fromtuple((100, 100, 200, 200))
     box.draw(example_config, example_img)
+
+
+def test_box_encapsulating_square():
+    box = mc.Box.fromtuple((100, 100, 300, 200))
+    assert box.midpoint() == mc.Point(200, 150)
+    square = box.encapsulating_square()
+    assert mc.Box.fromtuple((100, 50, 300, 250)) == square
