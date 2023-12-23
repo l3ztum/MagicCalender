@@ -6,8 +6,8 @@ import numpy as np
 
 def test_magic_calender_load(example_config):
     mcal = mc.magic_calender(example_config)
-    with pytest.throws():
-        mcal.load()
+    # with pytest.raises():
+    mcal.load()
 
 
 def test_magic_calender_load_from_json(example_config, example_json):

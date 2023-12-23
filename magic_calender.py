@@ -2,7 +2,7 @@ from dataclasses import dataclass
 from datetime import datetime, date
 from pathlib import Path
 
-import os.path, json, pytz
+import os.path, pytz
 
 from google.auth.transport.requests import Request
 from google.oauth2.credentials import Credentials
@@ -24,10 +24,10 @@ class CalConfig:
     month: int = date.today().month
     year: int = date.today().year
     line_ink: Any = (0, 0, 0, 0)
-    line_spacing_px: int = 10
-    day_spacing_px: int = 4
+    line_spacing_px: int = 20
+    day_spacing_px: int = 15
     line_width: int = 2
-    header_spacing_px: int = 150
+    header_spacing_px: int = 500
     height: int = 1920
     width: int = 1080
     font: ImageFont.FreeTypeFont = ImageFont.truetype(
@@ -303,7 +303,7 @@ class magic_day:
             box.anker_to(point_text)
             img.ellipse(box.as_tuple(), fill=(255, 0, 0, 255))
 
-    def draw(self, grid: Grid, config: CalConfig, img: ImageDraw.ImageDraw):
+    def draw(self, config: CalConfig, grid: Grid, img: ImageDraw.ImageDraw):
         coords = grid.get_coords_to_draw(self._day)
         font = config.font.font_variant(size=56)
         bounding_box = Box.fromtuple(font.getbbox(str(self._day)))
@@ -335,9 +335,9 @@ class magic_month:
                 if day != 0:
                     self.days.append(magic_day(day, appointments, config))
 
-    def draw(self, img: ImageDraw.ImageDraw, grid: Grid):
+    def draw(self, config: CalConfig, grid: Grid, img: ImageDraw.ImageDraw):
         for day in self.days:
-            day.draw()
+            day.draw(config, grid, img)
 
 
 class magic_calender(Calendar):
@@ -389,30 +389,45 @@ class magic_calender(Calendar):
 
             # Call the Calendar API
             now = (
-                date(self._config.year, self._config.month, 1).isoformat() + "Z"
-            )  # 'Z' indicates UTC time
+                datetime.combine(
+                    date(self._config.year, self._config.month, 1), datetime.min.time()
+                ).isoformat()
+                + "Z"
+            )  # 'Z' indicates UTC time 2023-12-23T20:21:21.096973Z
             last_day_of_month = monthrange(self._config.year, self._config.month)[1]
             ldam = (
-                date(
-                    self._config.year, self._config.month, last_day_of_month
+                datetime.combine(
+                    date(self._config.year, self._config.month, last_day_of_month),
+                    datetime.max.time(),
                 ).isoformat()
                 + "Z"
             )  # 'Z' indicates UTC time
-            print("Getting the upcoming 10 events")
-            events_result = (
-                service.events()
-                .list(
-                    calendarId="primary",
-                    timeMin=now,
-                    timeMax=ldam,
-                    maxResults=1,
-                    singleEvents=True,
-                    orderBy="startTime",
+            page_token = None
+            events = []
+            while True:
+                calendar_list = (
+                    service.calendarList().list(pageToken=page_token).execute()
                 )
-                .execute()
-            )
-            events = events_result.get("items", [])
-            print(json.dumps(events))
+                for calendar_list_entry in calendar_list["items"]:
+                    print(calendar_list_entry["id"])
+                    print("Getting the upcoming events")
+                    events_result = (
+                        service.events()
+                        .list(
+                            calendarId="primary",
+                            timeMin=now,
+                            timeMax=ldam,
+                            # maxResults=1,
+                            singleEvents=True,
+                            orderBy="startTime",
+                        )
+                        .execute()
+                    )
+                    events += events_result.get("items", [])
+                page_token = calendar_list.get("nextPageToken")
+                if not page_token:
+                    break
+
             return events
 
         except HttpError as error:
@@ -426,8 +441,9 @@ class magic_calender(Calendar):
         )
 
     def draw(self):
+        self._grid.draw(self._id)
         if self.month:
-            self.month.draw(self._id, self._grid)
+            self.month.draw(self._config, self._grid, self._id)
         else:
             raise RuntimeError("month not loaded yet")
 
@@ -447,7 +463,7 @@ def main():
         cal = magic_calender(firstweekday=0)
         cal.load()
         cal.draw()
-        cal.save()
+        cal.save(f"{date.today().isoformat()}.png")
     except RuntimeError as exc:
         print(f"An error occurred: {exc}")
 
