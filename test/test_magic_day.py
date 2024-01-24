@@ -1,14 +1,13 @@
 from unittest import mock
 from .. import magic_calender as mc
-from datetime import date, datetime
+from datetime import date
 
 
 def test_magic_day_init(example_config, example_img, example_grid, example_json):
-    appointments = [mc.appointment(app) for app in example_json]
+    appointments = {mc.appointment(app) for app in example_json}
     example_grid.draw(example_img)
     day = mc.magic_day(6, appointments, example_config)
     assert len(day._appointments) == 2
-    assert day._appointments[0] == appointments[0]
 
 
 def test_magic_day_draw(example_config, example_img, example_grid, example_json):

@@ -23,7 +23,7 @@ def example_config() -> mc.CalConfig:
             "arial.ttf"
             if "nt" in os.name.lower()
             else "/usr/share/fonts/truetype/freefont/FreeMono.ttf",
-            15,
+            14 if "nt" in os.name.lower() else 15,
         ),
     )
 

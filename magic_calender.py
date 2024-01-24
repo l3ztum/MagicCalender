@@ -14,8 +14,6 @@ from PIL import Image, ImageDraw, ImageFont
 from typing import Any, List, Optional, Set, Tuple
 from calendar import Calendar, monthrange, monthcalendar
 
-import numpy as np
-
 from enum import Enum
 
 
@@ -71,7 +69,7 @@ class Point:
         if isinstance(other, int):
             return self + other * (-1)
         if isinstance(other, Point):
-            return self + Point(*(np.array(other.as_tuple()) * -1))
+            return self + Point(*[i * -1 for i in other.as_tuple()])
 
     def as_tuple(self) -> Tuple[int, int]:
         return (self.x, self.y)
@@ -117,7 +115,7 @@ class Box:
 
     def midpoint(self) -> Point:
         p = self.p_end - self.p_start
-        return self.p_end - Point(*(np.array(p.as_tuple()) / 2))
+        return self.p_end - Point(*[i / 2 for i in p.as_tuple()])
 
     def encapsulating_square(self):
         p = self.p_end - self.p_start
@@ -182,18 +180,32 @@ class Grid:
             else ORIENTATION.VERTICAL
         )
         self._config = CalConfig
-        self._cal = np.array(monthcalendar(self._config.year, self._config.month))
+        self._cal = monthcalendar(self._config.year, self._config.month)
+
+    def _where(self, day: int) -> Tuple[int, int]:
+        return [
+            (row, col)
+            for row, x in enumerate(self._cal)
+            for col, i in enumerate(x)
+            if i == 5
+        ][0]
 
     def is_weekend(self, day: int):
-        _, col = [i[0] for i in np.where(self._cal == day)]
+        _, col = self._where(day)
         return col >= 5
 
     def get_coords_to_draw(self, day: int) -> Box:
-        row, col = [i[0] for i in np.where(self._cal == day)]
+        row, col = self._where(day)
         return self._coords_from_index(row, col)
 
     def _coords_from_index(self, row, col) -> Box:
-        max_rows_to_draw, max_cols_to_draw = np.shape(self._cal)
+        max_rows_to_draw, max_cols_to_draw = max(
+            [
+                (row, col)
+                for row, x in enumerate(self._cal, 1)
+                for col, _ in enumerate(x, 1)
+            ]
+        )
         height_per_row = int(
             (self._config.height - self._config.header_spacing_px) / max_rows_to_draw
         )
@@ -209,7 +221,13 @@ class Grid:
         return Box(p_start, p_end)
 
     def draw(self, img: ImageDraw.ImageDraw):
-        rows, cols = np.shape(self._cal)
+        rows, cols = max(
+            [
+                (row, col)
+                for row, x in enumerate(self._cal, 1)
+                for col, _ in enumerate(x, 1)
+            ]
+        )
         for row in range(rows):
             for col in range(cols):
                 self._coords_from_index(row, col).draw(self._config, img)

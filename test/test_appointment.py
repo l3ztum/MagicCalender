@@ -36,10 +36,6 @@ def test_magic_appointment_text_cut(example_json, example_config):
     assert length > 100
 
 
-#   short = ap._get_summary(100, example_config)
-#   assert short == ap.summary[:13] + "\u2026"
-
-
 def test_magic_appointment_draw(example_json, example_img, example_config):
     ap = mc.appointment(example_json[0])
     ap.summary = "Long Example Event Summary"
