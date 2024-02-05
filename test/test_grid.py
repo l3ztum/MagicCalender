@@ -17,3 +17,7 @@ def test_grid_coords(example_config, example_img):
     )
     assert (0, 350, 250, 600) == grid.get_coords_to_draw(5).as_tuple()
     grid.draw(example_img)
+
+
+def test_weekend(example_grid):
+    assert example_grid.is_weekend()

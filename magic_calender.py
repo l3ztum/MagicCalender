@@ -186,7 +186,7 @@ class Grid:
         return [
             (row, col)
             for row, x in enumerate(self._cal)
-            for col, i in enumerate(x)
+            for col, i in enumerate(x, 1)
             if i == 5
         ][0]
 
@@ -198,14 +198,17 @@ class Grid:
         row, col = self._where(day)
         return self._coords_from_index(row, col)
 
-    def _coords_from_index(self, row, col) -> Box:
-        max_rows_to_draw, max_cols_to_draw = max(
+    def _get_dimensions(self) -> Tuple[int, int]:
+        return max(
             [
                 (row, col)
                 for row, x in enumerate(self._cal, 1)
                 for col, _ in enumerate(x, 1)
             ]
         )
+
+    def _coords_from_index(self, row, col) -> Box:
+        max_rows_to_draw, max_cols_to_draw = self._get_dimensions()
         height_per_row = int(
             (self._config.height - self._config.header_spacing_px) / max_rows_to_draw
         )
@@ -221,13 +224,7 @@ class Grid:
         return Box(p_start, p_end)
 
     def draw(self, img: ImageDraw.ImageDraw):
-        rows, cols = max(
-            [
-                (row, col)
-                for row, x in enumerate(self._cal, 1)
-                for col, _ in enumerate(x, 1)
-            ]
-        )
+        rows, cols = self._get_dimensions()
         for row in range(rows):
             for col in range(cols):
                 self._coords_from_index(row, col).draw(self._config, img)
