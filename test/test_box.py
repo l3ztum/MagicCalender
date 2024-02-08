@@ -5,8 +5,8 @@ from .. import magic_calender as mc
 
 def test_box_init():
     assert (
-        mc.Box(mc.Point(1, 1), mc.Point(2, 2)).as_tuple()
-        == mc.Box.fromtuple((1, 1, 2, 2)).as_tuple()
+        mc.Box(mc.Point(1, 1), mc.Point(2, 2))
+        == mc.Box.fromtuple((1, 1, 2, 2))
     )
 
 
@@ -29,3 +29,10 @@ def test_box_encapsulating_square():
     assert box.midpoint() == mc.Point(200, 150)
     square = box.encapsulating_square()
     assert mc.Box.fromtuple((100, 50, 300, 250)) == square
+
+def test_box_resize():
+    box = mc.Box.fromtuple((100, 100, 200, 200))
+    box.resize(5)
+    assert box == mc.Box.fromtuple((95, 95, 205, 205)), print(f"{box}")
+    box.resize((5, 5, -5, -5))
+    assert box == mc.Box.fromtuple((100, 100, 200, 200)), print(f"{box}")

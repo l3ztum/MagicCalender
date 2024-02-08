@@ -1,6 +1,6 @@
 from copy import deepcopy
 from dataclasses import dataclass
-from datetime import datetime, date
+from datetime import datetime, date, time
 from pathlib import Path
 
 import os.path, pytz
@@ -13,7 +13,7 @@ from googleapiclient.discovery import build
 from googleapiclient.errors import HttpError
 
 from PIL import Image, ImageDraw, ImageFont
-from typing import Any, List, Optional, Set, Tuple
+from typing import Any, List, Optional, Set, Tuple, overload
 from calendar import Calendar, monthrange, monthcalendar
 
 from enum import Enum
@@ -119,9 +119,24 @@ class Box:
         p = self.p_end - self.p_start
         return self.p_end - Point(*[i / 2 for i in p.as_tuple()])
 
-    def resize(self, px:int)-> None:
-        self.p_start -= px
-        self.p_end += px
+    @overload
+    def resize(self, other:int)-> None:
+        ...
+
+    @overload
+    def resize(self, other:Tuple[int,int,int,int])-> None:
+        ...
+
+    def resize(self, other):
+        if isinstance(other,int):
+            self.p_start -= other
+            self.p_end += other
+        elif isinstance(other,tuple):
+            assert len(other) == 4
+            self.p_start += other[:2]
+            self.p_end += other[2:]
+        else:
+            raise NotImplementedError
 
     def encapsulating_square(self):
         p = self.p_end - self.p_start
@@ -133,13 +148,6 @@ class Box:
         self.p_start += point
         self.p_end += point
         self._fill_other()
-
-    # def __add__(self, other):
-    #     if isinstance(other, Box):
-    #         return Box(self.p_start + other.p_start, self.p_end + other.p_end)
-    #     if isinstance(other, tuple):
-    #         return Box(self.p_start + other[:2], self.p_end + other[2:])
-    #     raise TypeError
 
     def __sub__(self, other):
         if isinstance(other, Box):
@@ -255,6 +263,12 @@ class appointment:
 
     def __hash__(self) -> id:
         return hash(self.id)
+    @property
+    def days(self)-> int:
+        if (days:=(self.end.date()-self.start.date()).days) and days > 0 and self.end.time() != time(0,0):
+            return days + 1
+        else:
+            return 1
 
     @property
     def multiday(self) -> bool:
@@ -299,8 +313,6 @@ class appointment:
         box.resize(5)
         img.rounded_rectangle(box.as_tuple(),8,(255,0,0,255), (255,0,0,255))
 
-        pass
-
 
     def draw(
         self,
@@ -311,7 +323,7 @@ class appointment:
     ) -> int:
         coords = grid.get_coords_to_draw(self.start.day)
         length_available_for_txt = (
-            coords.p_end.x - coords.p_start.x - 2* config.line_spacing_px
+            self.days * (coords.p_end.x - coords.p_start.x - 2* config.line_spacing_px)
         )
         text_shortened = self._get_summary(length_available_for_txt, config)
         text_box  = Box.fromtuple(config.font.getbbox(text_shortened))
@@ -323,7 +335,7 @@ class appointment:
             config.line_ink,
             font=config.font,
         )
-        #todo what happens when coords.p_start.y + offset-y > coords.p_end.y like too many app to show
+        #TODO: what happens when coords.p_start.y + offset-y > coords.p_end.y like too many app to show
         return text_box.height
 
 
