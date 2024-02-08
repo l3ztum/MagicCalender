@@ -1,3 +1,4 @@
+from copy import deepcopy
 from dataclasses import dataclass
 from datetime import datetime, date
 from pathlib import Path
@@ -5,6 +6,7 @@ from pathlib import Path
 import os.path, pytz
 
 from google.auth.transport.requests import Request
+from google.auth.exceptions import RefreshError
 from google.oauth2.credentials import Credentials
 from google_auth_oauthlib.flow import InstalledAppFlow
 from googleapiclient.discovery import build
@@ -117,6 +119,10 @@ class Box:
         p = self.p_end - self.p_start
         return self.p_end - Point(*[i / 2 for i in p.as_tuple()])
 
+    def resize(self, px:int)-> None:
+        self.p_start -= px
+        self.p_end += px
+
     def encapsulating_square(self):
         p = self.p_end - self.p_start
         side_length_2 = int(max(p.as_tuple()) / 2)
@@ -172,6 +178,7 @@ class Box:
             )
 
 
+
 class Grid:
     def __init__(self, CalConfig: CalConfig) -> None:
         self._orientation = (
@@ -186,8 +193,8 @@ class Grid:
         return [
             (row, col)
             for row, x in enumerate(self._cal)
-            for col, i in enumerate(x, 1)
-            if i == 5
+            for col, i in enumerate(x)
+            if i == day
         ][0]
 
     def is_weekend(self, day: int):
@@ -287,6 +294,14 @@ class appointment:
                 return new_sum
         return ""
 
+    def _draw_background(self, img:ImageDraw.ImageDraw, text_box:Box):
+        box=deepcopy(text_box)
+        box.resize(5)
+        img.rounded_rectangle(box.as_tuple(),8,(255,0,0,255), (255,0,0,255))
+
+        pass
+
+
     def draw(
         self,
         config: CalConfig,
@@ -296,17 +311,20 @@ class appointment:
     ) -> int:
         coords = grid.get_coords_to_draw(self.start.day)
         length_available_for_txt = (
-            coords.p_end.x - coords.p_start.x - 2 * config.line_spacing_px
+            coords.p_end.x - coords.p_start.x - 2* config.line_spacing_px
         )
-        new_text = self._get_summary(length_available_for_txt, config)
+        text_shortened = self._get_summary(length_available_for_txt, config)
+        text_box  = Box.fromtuple(config.font.getbbox(text_shortened))
+        text_box.anker_to(coords.p_start + (config.line_spacing_px, offset_y))
+        self._draw_background(img, text_box)
         img.text(
             (coords.p_start + (config.line_spacing_px, offset_y)).as_tuple(),
-            self._get_summary(length_available_for_txt, config),
+            text_shortened,
             config.line_ink,
             font=config.font,
         )
-        _, y1, _, y2 = config.font.getbbox(new_text)
-        return y2 - y1
+        #todo what happens when coords.p_start.y + offset-y > coords.p_end.y like too many app to show
+        return text_box.height
 
 
 class magic_day:
@@ -406,12 +424,17 @@ class magic_calender(Calendar):
         # The file token.json stores the user's access and refresh tokens, and is
         # created automatically when the authorization flow completes for the first
         # time.
-        if os.path.exists("token.json"):
-            creds = Credentials.from_authorized_user_file("token.json", SCOPES)
-        # If there are no (valid) credentials available, let the user log in.
+        if (cred_path:= Path("token.json")) and cred_path.is_file():
+            creds = Credentials.from_authorized_user_file(cred_path, SCOPES)
+            # If there are no (valid) credentials available, let the user log in.
         if not creds or not creds.valid:
             if creds and creds.expired and creds.refresh_token:
-                creds.refresh(Request())
+                try:
+                    creds.refresh(Request())
+                except RefreshError:
+                    print ("Token expired! Please restart")
+                    cred_path.unlink()
+
             else:
                 try:
                     flow = InstalledAppFlow.from_client_secrets_file(

@@ -14,8 +14,9 @@ def test_point_operations():
 
 def test_month_calender(example_config, example_grid):
     cal_np = np.array(monthcalendar(example_config.year, example_config.month))
-    day = 6
+    max_day = mc.monthrange(example_config.year, example_config.month)[1]
     print(cal_np)
     print(example_grid._cal)
-    assert example_grid._where(day) == tuple(i[0] for i in np.where(cal_np == day))
     assert example_grid._get_dimensions() == np.shape(cal_np)
+    for day in range(1, max_day):
+        assert example_grid._where(day) == tuple(i[0] for i in np.where(cal_np == day))
