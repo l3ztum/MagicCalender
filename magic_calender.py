@@ -120,18 +120,18 @@ class Box:
         return self.p_end - Point(*[i / 2 for i in p.as_tuple()])
 
     @overload
-    def resize(self, other:int)-> None:
+    def resize(self, other: int) -> None:
         ...
 
     @overload
-    def resize(self, other:Tuple[int,int,int,int])-> None:
+    def resize(self, other: Tuple[int, int, int, int]) -> None:
         ...
 
     def resize(self, other):
-        if isinstance(other,int):
+        if isinstance(other, int):
             self.p_start -= other
             self.p_end += other
-        elif isinstance(other,tuple):
+        elif isinstance(other, tuple):
             assert len(other) == 4
             self.p_start += other[:2]
             self.p_end += other[2:]
@@ -184,7 +184,6 @@ class Box:
                 fill=CalConfig.line_ink,
                 width=CalConfig.line_width,
             )
-
 
 
 class Grid:
@@ -261,11 +260,26 @@ class appointment:
     def __eq__(self, __o: object) -> bool:
         return self.id == __o.id
 
+    def __lt__(self, _other: object) -> bool:
+        if self.multiday == _other.multiday:
+            if not self.multiday:
+                return self.end.time() < _other.end.time()
+            if self.end.date() == self.end.date():
+                return self.end.time() < self.end.time()
+            return self.end.date() < self.end.date()
+        elif self.multiday != _other.multiday:
+            return self.multiday
+
     def __hash__(self) -> id:
         return hash(self.id)
+
     @property
-    def days(self)-> int:
-        if (days:=(self.end.date()-self.start.date()).days) and days > 0 and self.end.time() != time(0,0):
+    def days(self) -> int:
+        if (
+            (days := (self.end.date() - self.start.date()).days)
+            and days > 0
+            and self.end.time() != time(0, 0)
+        ):
             return days + 1
         else:
             return 1
@@ -308,11 +322,12 @@ class appointment:
                 return new_sum
         return ""
 
-    def _draw_background(self, img:ImageDraw.ImageDraw, text_box:Box):
-        box=deepcopy(text_box)
+    def _draw_background(self, img: ImageDraw.ImageDraw, text_box: Box):
+        box = deepcopy(text_box)
         box.resize(5)
-        img.rounded_rectangle(box.as_tuple(),8,(255,0,0,255), (255,0,0,255))
-
+        img.rounded_rectangle(
+            box.as_tuple(), 8, (125, 125, 255, 255), (125, 125, 255, 255)
+        )
 
     def draw(
         self,
@@ -322,11 +337,11 @@ class appointment:
         offset_y: int = 0,
     ) -> int:
         coords = grid.get_coords_to_draw(self.start.day)
-        length_available_for_txt = (
-            self.days * (coords.p_end.x - coords.p_start.x - 2* config.line_spacing_px)
+        length_available_for_txt = self.days * (
+            coords.p_end.x - coords.p_start.x - 2 * config.line_spacing_px
         )
         text_shortened = self._get_summary(length_available_for_txt, config)
-        text_box  = Box.fromtuple(config.font.getbbox(text_shortened))
+        text_box = Box.fromtuple(config.font.getbbox(text_shortened))
         text_box.anker_to(coords.p_start + (config.line_spacing_px, offset_y))
         self._draw_background(img, text_box)
         img.text(
@@ -335,7 +350,7 @@ class appointment:
             config.line_ink,
             font=config.font,
         )
-        #TODO: what happens when coords.p_start.y + offset-y > coords.p_end.y like too many app to show
+        # TODO: what happens when coords.p_start.y + offset-y > coords.p_end.y like too many app to show
         return text_box.height
 
 
@@ -350,6 +365,7 @@ class magic_day:
             <= datetime(config.year, config.month, day, tzinfo=pytz.UTC)
             < a.end
         ]
+        self._appointments.sort()
         self._day = day
 
     def _get_day_color(self, config: CalConfig, grid: Grid):
@@ -436,7 +452,7 @@ class magic_calender(Calendar):
         # The file token.json stores the user's access and refresh tokens, and is
         # created automatically when the authorization flow completes for the first
         # time.
-        if (cred_path:= Path("token.json")) and cred_path.is_file():
+        if (cred_path := Path("token.json")) and cred_path.is_file():
             creds = Credentials.from_authorized_user_file(cred_path, SCOPES)
             # If there are no (valid) credentials available, let the user log in.
         if not creds or not creds.valid:
@@ -444,7 +460,7 @@ class magic_calender(Calendar):
                 try:
                     creds.refresh(Request())
                 except RefreshError:
-                    print ("Token expired! Please restart")
+                    print("Token expired! Please restart")
                     cred_path.unlink()
 
             else:
