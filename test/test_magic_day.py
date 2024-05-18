@@ -28,6 +28,7 @@ def test_magic_day_draw_calls(example_config, example_img, example_grid, example
         f"{mc.__name__}.appointment.draw"
     ) as mock_appointment_draw:
         mock_date.today.return_value = date(2023, 12, 6)
+        mock_appointment_draw.return_value = 20
         appointments = {mc.appointment(app) for app in example_json}
         example_grid.draw(example_img)
         day = mc.magic_day(6, appointments, example_config)
@@ -35,5 +36,10 @@ def test_magic_day_draw_calls(example_config, example_img, example_grid, example
         print("\n")
         for app in day._appointments:
             print(app)
-        print(mock_appointment_draw.call_args_list)
         assert mock_appointment_draw.call_count == 2
+        for i, call in enumerate(mock_appointment_draw.call_args_list):
+            assert int(call.args[3]) == (
+                61
+                + example_config.line_spacing_px
+                + i * mock_appointment_draw.return_value
+            )

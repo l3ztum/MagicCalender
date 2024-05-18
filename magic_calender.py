@@ -405,6 +405,7 @@ class magic_day:
         for app in self._appointments:
             _offset_y += config.line_spacing_px
             _offset_y += app.draw(config, grid, img, _offset_y)
+            print(_offset_y)
 
 
 class magic_month:
@@ -416,12 +417,23 @@ class magic_month:
                 if day != 0:
                     self.days.append(magic_day(day, appointments, config))
 
+    def _get_header_text_size(self, config: CalConfig) -> int:
+        diff = 2
+        font_size = 1
+        while diff > 1:
+            font_size = int(font_size + diff / 2)
+            font = config.font.font_variant(size=int(font_size + diff / 2))
+            box = Box.fromtuple(font.getbbox(str(self._month)))
+            diff = config.header_spacing_px - box.p_end.y
+
+        return font_size
+
     def draw(self, config: CalConfig, grid: Grid, img: ImageDraw.ImageDraw):
-        font = config.font.font_variant(size=180)
+        font = config.font.font_variant(size=self._get_header_text_size(config))
         box = Box.fromtuple(font.getbbox(str(self._month)))
         p = Point(
             int((config.width / 2) - box.width / 2),
-            int((config.header_spacing_px / 2) - box.height / 2),
+            -int(box.p_start.y / 2),  # might not work with different fonts
         )
         img.text(
             p.as_tuple(),
@@ -429,6 +441,7 @@ class magic_month:
             config.line_ink,
             font=font,
         )
+        # img.point(p.as_tuple(), (255, 0, 0))
         for day in self.days:
             day.draw(config, grid, img)
 
