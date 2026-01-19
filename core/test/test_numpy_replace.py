@@ -1,8 +1,8 @@
 import pytest
-from .. import magic_calender as mc
 import numpy as np
 from calendar import monthcalendar
 
+from MagicCalender import magic_calender as mc
 
 def test_point_operations():
     p = mc.Point(10, 6)

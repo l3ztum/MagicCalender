@@ -1,37 +1,35 @@
 import pytest
-from .. import magic_calender as mc
 from PIL import Image, ImageFont, ImageDraw
 import json
 import os
 from pathlib import Path
-import numpy as np
 
+from magic_calender.config import CalConfig
+from core.grid import Grid
 
 @pytest.fixture
-def example_config() -> mc.CalConfig:
-    return mc.CalConfig(
+def example_config() -> CalConfig:
+    return CalConfig(
         month=12,
         year=2023,
         line_ink=(0, 0, 0, 0),
-        line_spacing_px=10,
+        appointment_spacing_px=10,
         day_spacing_px=5,
         line_width=2,
         header_spacing_px=100,
         height=1100,
         width=1000,
+        render_grid=True,
         font=ImageFont.truetype(
             "arial.ttf"
             if "nt" in os.name.lower()
-            else "/usr/share/fonts/truetype/freefont/FreeMono.ttf",
-            14 if "nt" in os.name.lower() else 15,
+            else "/usr/share/fonts/truetype/dejavu/DejaVuSansMono.ttf",
+            11 if "nt" in os.name.lower() else 12,
         ),
     )
 
-
-@pytest.fixture
-def example_numpy():
-    return np.array([[1, 2, 3, 4], [5, 6, 7, 8], [9, 10, 11, 12], [13, 14, 15, 16]])
-
+def pytest_configure():
+    pytest.test_counter = 0
 
 @pytest.fixture
 def example_img(example_config) -> ImageDraw:
@@ -41,13 +39,14 @@ def example_img(example_config) -> ImageDraw:
         color=(255, 255, 255, 255),
     ) as img:
         yield ImageDraw.Draw(img)
-        print(f"\n{Path().absolute()/'test.png'}")
-        img.save(Path().absolute() / "test.png")
+        print(f"\n{Path().absolute()/f'test_{pytest.test_counter}.png'}")
+        img.save(Path().absolute() / f"test_{pytest.test_counter}.png")
+        pytest.test_counter+=1
 
 
 @pytest.fixture
-def example_grid(example_config) -> mc.Grid:
-    return mc.Grid(example_config)
+def example_grid(example_config) -> Grid:
+    return Grid(example_config)
 
 
 @pytest.fixture
