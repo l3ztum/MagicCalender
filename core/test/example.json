@@ -1,0 +1,150 @@
+[
+    {
+        "start": {
+            "date": "2023-12-06"
+        },
+        "end": {
+            "dateTime": "2023-12-08"
+        },
+        "summary": "Example event",
+        "id": "abc123"
+    },
+    {
+        "start": {
+            "date": "2023-12-06"
+        },
+        "end": {
+            "dateTime": "2023-12-07T06:09:23Z"
+        },
+        "summary": "Duplicate event",
+        "id": "abc123"
+    },
+    {
+        "start": {
+            "date": "2023-12-06"
+        },
+        "end": {
+            "date": "2023-12-07"
+        },
+        "summary": "Long Example event",
+        "id": "acab456"
+    },
+    {
+        "start": {
+            "date": "2023-12-06T00:00:00Z"
+        },
+        "end": {
+            "date": "2023-12-07T00:00:00Z"
+        },
+        "summary": "Whole Day Event",
+        "id": "acab45jkfkjf"
+    },
+    {
+        "kind": "calendar#event",
+        "etag": "\"1234\"",
+        "id": "asdfjklö",
+        "status": "confirmed",
+        "htmlLink": "https://www.google.com/calendar/event?eid=",
+        "created": "2023-11-17T21:26:31.000Z",
+        "updated": "2023-11-17T21:26:31.647Z",
+        "summary": "8. Woche",
+        "creator": {
+            "email": "mail@gmail.com",
+            "self": true
+        },
+        "organizer": {
+            "email": "mail@gmail.com",
+            "self": true
+        },
+        "start": {
+            "date": "2023-12-11"
+        },
+        "end": {
+            "date": "2023-12-12"
+        },
+        "transparency": "transparent",
+        "iCalUID": "cal@google.com",
+        "sequence": 0,
+        "reminders": {
+            "useDefault": false,
+            "overrides": [
+                {
+                    "method": "popup",
+                    "minutes": 10
+                },
+                {
+                    "method": "email",
+                    "minutes": 430
+                }
+            ]
+        },
+        "eventType": "default"
+    },
+    {
+        "kind": "calendar#event",
+        "etag": "\"5785849\"",
+        "id": "asdfjkl",
+        "status": "confirmed",
+        "htmlLink": "https://www.google.com/calendar/event?eid=",
+        "created": "2023-05-12T09:54:19.000Z",
+        "updated": "2023-05-12T09:54:19.261Z",
+        "summary": "Z\u00e4hlerstand ablesen",
+        "creator": {
+            "email": "mail@gmail.com",
+            "self": true
+        },
+        "organizer": {
+            "email": "mail@gmail.com",
+            "self": true
+        },
+        "start": {
+            "date": "2024-01-01"
+        },
+        "end": {
+            "date": "2024-01-02"
+        },
+        "recurringEventId": "jklgjklögsjköljklöfgd",
+        "originalStartTime": {
+            "date": "2024-01-01"
+        },
+        "transparency": "transparent",
+        "iCalUID": "@google.com",
+        "sequence": 0,
+        "reminders": {
+            "useDefault": false
+        },
+        "eventType": "default"
+    },
+    {
+        "kind": "calendar#event",
+        "etag": "\"3404049049256000\"",
+        "id": "74s30eb3cgrj4b9o65h6c",
+        "status": "confirmed",
+        "htmlLink": "https://www.google.com/calendar/event?eid=",
+        "created": "2023-12-08T08:35:24.000Z",
+        "updated": "2023-12-08T08:35:24.628Z",
+        "summary": "Zahnarzt",
+        "creator": {
+            "email": "mail@gmail.com",
+            "self": true
+        },
+        "organizer": {
+            "email": "mail@gmail.com",
+            "self": true
+        },
+        "start": {
+            "dateTime": "2024-01-04T09:15:00+01:00",
+            "timeZone": "Europe/Berlin"
+        },
+        "end": {
+            "dateTime": "2024-01-04T10:15:00+01:00",
+            "timeZone": "Europe/Berlin"
+        },
+        "iCalUID": "74s30eb3cgrj4b",
+        "sequence": 0,
+        "reminders": {
+            "useDefault": true
+        },
+        "eventType": "default"
+    }
+]
